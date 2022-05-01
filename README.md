@@ -13,5 +13,6 @@ model = resnet18()
 model = model.to(device)
 
 num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print('Number of parameters: %d' %[Breast Cancer Classificator.pdf](https://github.com/gpattarone/Code/files/8598591/Breast.Cancer.Classificator.pdf)
- num_params)
+print('Number of parameters: %d' % num_params)
+
+[Breast Cancer Classificator.pdf](https://github.com/gpattarone/Code/files/8598591/Breast.Cancer.Classificator.pdf)
