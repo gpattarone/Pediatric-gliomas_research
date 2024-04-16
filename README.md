@@ -1,2 +1,2 @@
-# Meta-analysis code
-Useful Code under construction to collect and curate all available clinical, anatomopathological, genomic, and molecular information from pediatric patients with gliomas, including data on gene expression, mutations, genetic variations, and epigenetic profiles, from public domain databases and existing literature in order to perform corresponding comparisons with the data obtained from the patient cohort
+# Meta-analysis scripts
+Useful scripts and pipeline (under construction) to collect and curate all available clinical, anatomopathological, genomic, and molecular information from pediatric patients with gliomas, including data on gene expression, mutations, genetic variations, and epigenetic profiles, from public domain databases and existing literature in order to perform corresponding comparisons with the data obtained from the patient cohort
