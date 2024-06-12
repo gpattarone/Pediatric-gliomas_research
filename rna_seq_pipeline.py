@@ -56,6 +56,22 @@ def run_variant_analysis(bam_files, reference_genome, output_dir):
         
         # Optionally, Step 3: Convert the gzipped VCF file to plain VCF
         subprocess.run(['bcftools', 'view', f'{vcf_file}.gz', '>', vcf_file], shell=True)
+def run_preprocessing(bam_files):
+    for bam_file in bam_files:
+        # Step 1: Sort BAM file
+        sorted_bam_file = bam_file.replace('.bam', '.sorted.bam')
+        subprocess.run(['samtools', 'sort', '-o', sorted_bam_file, bam_file])
+        
+        # Step 2: Index the sorted BAM file
+        subprocess.run(['samtools', 'index', sorted_bam_file])
+        
+        # Step 3: Mark duplicates using Picard
+        dedup_bam_file = sorted_bam_file.replace('.sorted.bam', '.dedup.bam')
+        metrics_file = sorted_bam_file.replace('.sorted.bam', '.metrics.txt')
+        subprocess.run([
+            'picard', 'MarkDuplicates', 'INPUT=' + sorted_bam_file,
+            'OUTPUT=' + dedup_bam_file, 'METRICS_FILE=' + metrics_file
+        ])
 
 def main():
     parser = argparse.ArgumentParser(description="RNA-seq analysis pipeline")
@@ -74,10 +90,8 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     run_star(fastq_files, reference_genome, gtf, output_dir)
+    run_preprocessing(fastq_files)
     run_rsem(fastq_files, reference_genome, gtf, output_dir)
     
-    bam_files = [os.path.join(output_dir, os.path.basename(f).split('.')[0] + 'Aligned.sortedByCoord.out.bam') for f in fastq_files]
+    bam_files = [os.path.join(output_dir, os.path.basename(f).split('.')[0] + '.sorted.bam') for f in fastq_files]
     run_variant_analysis(bam_files, reference_genome, output_dir)
-
-if __name__ == "__main__":
-    main()
