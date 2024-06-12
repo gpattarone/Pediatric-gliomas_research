@@ -21,7 +21,7 @@ def run_star(fastq_files, reference_genome, gtf, output_dir):
         subprocess.run([
             'STAR', '--runThreadN', '8', '--genomeDir', star_index,
             '--readFilesIn', fastq_file, '--outFileNamePrefix', output_prefix,
-            '--outSAMtype', 'BAM', 'SortedByCoordinate'
+            '--outSAMtype', 'None'
         ])
 
 def run_rsem(fastq_files, reference_genome, gtf, output_dir):
@@ -37,35 +37,25 @@ def run_rsem(fastq_files, reference_genome, gtf, output_dir):
     for fastq_file in fastq_files:
         output_prefix = os.path.join(output_dir, os.path.basename(fastq_file).split('.')[0])
         subprocess.run([
-            'rsem-calculate-expression', '--star', '--paired-end',
-            '--output-genome-bam', '--alignments', fastq_file,
-            rsem_ref, output_prefix
+            'rsem-calculate-expression', '--single',
+            '--output-genome-bam', '--no-bam-output',
+            fastq_file, rsem_ref, output_prefix
         ])
 
 def run_variant_analysis(bam_files, reference_genome, output_dir):
     for bam_file in bam_files:
-        # Step 1: Mark duplicates
-        dedup_bam_file = bam_file.replace('.bam', '.dedup.bam')
-        metrics_file = bam_file.replace('.bam', '.metrics.txt')
+        # Step 1: Call variants using bcftools
+        vcf_file = bam_file.replace('.bam', '.vcf')
         subprocess.run([
-            'gatk', 'MarkDuplicates', '-I', bam_file, '-O', dedup_bam_file, '-M', metrics_file
-        ])
+            'bcftools', 'mpileup', '-f', reference_genome, bam_file,
+            '|', 'bcftools', 'call', '-mv', '-Oz', '-o', f'{vcf_file}.gz'
+        ], shell=True)
         
-        # Step 2: Index the deduplicated BAM file
-        subprocess.run(['samtools', 'index', dedup_bam_file])
+        # Step 2: Index the VCF file
+        subprocess.run(['bcftools', 'index', f'{vcf_file}.gz'])
         
-        # Step 3: Call variants using GATK HaplotypeCaller
-        vcf_file = dedup_bam_file.replace('.bam', '.vcf')
-        subprocess.run([
-            'gatk', 'HaplotypeCaller', '-R', reference_genome, '-I', dedup_bam_file, '-O', vcf_file
-        ])
-        
-        # Optional: Step 4: Filter the VCF file
-        filtered_vcf_file = vcf_file.replace('.vcf', '.filtered.vcf')
-        subprocess.run([
-            'gatk', 'VariantFiltration', '-R', reference_genome, '-V', vcf_file, '-O', filtered_vcf_file,
-            '--filter-expression', 'QD < 2.0 || FS > 60.0 || MQ < 40.0', '--filter-name', 'basic_snp_filter'
-        ])
+        # Optionally, Step 3: Convert the gzipped VCF file to plain VCF
+        subprocess.run(['bcftools', 'view', f'{vcf_file}.gz', '>', vcf_file], shell=True)
 
 def main():
     parser = argparse.ArgumentParser(description="RNA-seq analysis pipeline")
